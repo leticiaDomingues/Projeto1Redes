@@ -4,6 +4,7 @@ import socket
 import sys
 import binascii
 import commands
+from threading import Thread
 
 cgitb.enable()
 
@@ -46,33 +47,50 @@ def executaComando(msg):
 
 	return msg[0:16]+bin(len(msg))[2:].zfill(16)+msg[32:len(msg)]
 
-	
-#cria o socket
-s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+portaDaemon1 = 9001
+portaDaemon2 = 9002
+portaDaemon3 = 9003
 
-#liga o socket com o host e a porta
-s.bind(("127.0.0.1",9006))
+def iniciaThreadDaemon(daemon):
+	#cria o socket
+	s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-#deixa o socket na espera de possiveis conexoes
-s.listen(1)
+	#liga o socket com o host e a porta
+	porta =0
+	if daemon==1:
+		porta=portaDaemon1
+	if daemon==2:
+		porta=portaDaemon2
+	if daemon==3:
+		porta=portaDaemon3
+	s.bind(("127.0.0.1",porta))
 
-while True:
-	print "[Daemon 1] Esperando conexao..."
-	conexao, endCliente = s.accept()
+	#deixa o socket na espera de possiveis conexoes
+	s.listen(1)
 
-	try:
-		print >>sys.stderr, "[Daemon 1] Conexao com o cliente: ", endCliente
-		dados = conexao.recv(4096)
-		print >>sys.stderr, "[Daemon1] Dados recebidos: %s " % dados
-		msg = executaComando(dados)
-		if dados:
-			print "[Daemon 1] Enviando dados de volta"
-			conexao.sendall(msg)
-		else:
-			print "[Daemon 1] Acabou os dados."
-			break
-	finally:
-		conexao.close()
+	while True:
+		print "[Daemon %i] Esperando conexao..." % daemon
+		conexao, endCliente = s.accept()
+
+		try:
+			dados = conexao.recv(4096)
+			print >>sys.stderr, "[Daemon %i] Dados recebidos: %s " % (daemon,dados)
+			msg = executaComando(dados)
+			if dados:
+				print "[Daemon %i] Enviando dados de volta" % daemon
+				conexao.sendall(msg)
+			else:
+				break
+		finally:
+			conexao.close()
 
 
-#TODO: outros daemons!!
+#cria as threads
+thread1 = Thread(target=iniciaThreadDaemon,args=(1,))
+thread2 = Thread(target=iniciaThreadDaemon,args=(2,))
+thread3 = Thread(target=iniciaThreadDaemon,args=(3,))
+
+#da start nas threads
+thread1.start()
+thread2.start()
+thread3.start()

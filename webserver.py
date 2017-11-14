@@ -4,6 +4,7 @@ import cgitb
 import socket
 import sys
 import binascii
+from threading import Thread
 
 cgitb.enable()
 print("Content-Type: text/html;charset=uft-8\r\n\r\n")
@@ -13,7 +14,7 @@ form = cgi.FieldStorage()
 
 #informacoes dos daemons
 hostDaemons = "127.0.0.1"
-portaDaemon1 = 9006
+portaDaemon1 = 9001
 portaDaemon2 = 9002
 portaDaemon3 = 9003
 
@@ -42,14 +43,13 @@ def encaminhaPacote(daemon, comando, parametros):
 		dados = s.recv(4096)
 		
 		#printa o resultado na tela
-		print "<br><br><b>Comando:</b> %s<br>" % comando
+		print "<br><center><h3>MAQUINA %i</h3></center>" % daemon
+		print "<hr><b>Comando:</b> %s<br>" % comando
 		print "<b>Parametros:</b> %s<br><br>" % parametros
 		tamanho = len(dados) - 2
 		resultado = dados[160:tamanho]
 		resultado = resultado.replace("\n","<br>")
 		print resultado
-		print "<br><br>"
-		print "__________________________________"
 	finally:
 		s.close()
 
@@ -80,8 +80,6 @@ def criaMensagem(comando, parametros):
 	return msg[0:16]+ bin(len(msg))[2:].zfill(16)+ msg[32:len(msg)]
 
 def enviaDadosMaquina1():
-	print "<center><h3>MAQUINA 1</h3></center>"
-	print "<hr>"
 	if form.getvalue("maq1_ps"):
 		encaminhaPacote(1,"ps",form.getvalue("maq1-ps"))
 	if form.getvalue("maq1_df"):
@@ -92,7 +90,6 @@ def enviaDadosMaquina1():
 		encaminhaPacote(1,"uptime",form.getvalue("maq1-uptime"))
 
 def enviaDadosMaquina2():
-	print "<h3>MAQUINA 2</h3>"
 	if form.getvalue("maq2_ps"):
 		encaminhaPacote(2,"ps",form.getvalue("maq2-ps"))
 	if form.getvalue("maq2_df"):
@@ -103,7 +100,6 @@ def enviaDadosMaquina2():
 		encaminhaPacote(2,"uptime",form.getvalue("maq2-uptime"))
 
 def enviaDadosMaquina3():
-	print "<h3>MAQUINA 3</h3>"
 	if form.getvalue("maq3_ps"):
 		encaminhaPacote(3,"ps",form.getvalue("maq3-ps"))
 	if form.getvalue("maq3_df"):
@@ -114,5 +110,12 @@ def enviaDadosMaquina3():
 		encaminhaPacote(3,"uptime",form.getvalue("maq3-uptime"))
 
 
-#TODO: criar as threads
-enviaDadosMaquina1()
+#cria as threads
+thread1 = Thread(target=enviaDadosMaquina1)
+thread2 = Thread(target=enviaDadosMaquina2)
+thread3 = Thread(target=enviaDadosMaquina3)
+
+#da start nas threads
+thread1.start()
+thread2.start()
+thread3.start()
